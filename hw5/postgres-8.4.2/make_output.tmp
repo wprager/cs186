@@ -1,0 +1,109 @@
+make -C src all
+make[1]: Entering directory `/home/ubuntu/hw5/fa12/hw5/postgres-8.4.2/src'
+make -C port all
+make[2]: Entering directory `/home/ubuntu/hw5/fa12/hw5/postgres-8.4.2/src/port'
+make[2]: Nothing to be done for `all'.
+make[2]: Leaving directory `/home/ubuntu/hw5/fa12/hw5/postgres-8.4.2/src/port'
+make -C timezone all
+make[2]: Entering directory `/home/ubuntu/hw5/fa12/hw5/postgres-8.4.2/src/timezone'
+make -C ../../src/port all
+make[3]: Entering directory `/home/ubuntu/hw5/fa12/hw5/postgres-8.4.2/src/port'
+make[3]: Nothing to be done for `all'.
+make[3]: Leaving directory `/home/ubuntu/hw5/fa12/hw5/postgres-8.4.2/src/port'
+make[2]: Leaving directory `/home/ubuntu/hw5/fa12/hw5/postgres-8.4.2/src/timezone'
+make -C backend all
+make[2]: Entering directory `/home/ubuntu/hw5/fa12/hw5/postgres-8.4.2/src/backend'
+make -C ../../src/port all
+make -C access all
+make -C bootstrap all
+make -C catalog all
+make[3]: Entering directory `/home/ubuntu/hw5/fa12/hw5/postgres-8.4.2/src/backend/access'
+make -C common all
+make[3]: Entering directory `/home/ubuntu/hw5/fa12/hw5/postgres-8.4.2/src/port'
+make[3]: Nothing to be done for `all'.
+make[3]: Leaving directory `/home/ubuntu/hw5/fa12/hw5/postgres-8.4.2/src/port'
+make -C parser all
+make[3]: Entering directory `/home/ubuntu/hw5/fa12/hw5/postgres-8.4.2/src/backend/bootstrap'
+gcc -O2 -Wall -Wmissing-prototypes -Wpointer-arith -Wdeclaration-after-statement -Wendif-labels -fno-strict-aliasing -fwrapv -g -I. -I../../../src/include -D_GNU_SOURCE   -c -o bootparse.o bootparse.c -MMD -MP -MF .deps/bootparse.Po
+make[4]: Entering directory `/home/ubuntu/hw5/fa12/hw5/postgres-8.4.2/src/backend/access/common'
+gcc -O2 -Wall -Wmissing-prototypes -Wpointer-arith -Wdeclaration-after-statement -Wendif-labels -fno-strict-aliasing -fwrapv -g -I../../../../src/include -D_GNU_SOURCE   -c -o printtup.o printtup.c -MMD -MP -MF .deps/printtup.Po
+make[3]: Entering directory `/home/ubuntu/hw5/fa12/hw5/postgres-8.4.2/src/backend/parser'
+gcc -O2 -Wall -Wmissing-prototypes -Wpointer-arith -Wdeclaration-after-statement -Wendif-labels -fno-strict-aliasing -fwrapv -g -I. -I../../../src/include -D_GNU_SOURCE   -c -o gram.o gram.c -MMD -MP -MF .deps/gram.Po
+make[3]: Entering directory `/home/ubuntu/hw5/fa12/hw5/postgres-8.4.2/src/backend/catalog'
+gcc -O2 -Wall -Wmissing-prototypes -Wpointer-arith -Wdeclaration-after-statement -Wendif-labels -fno-strict-aliasing -fwrapv -g -I../../../src/include -D_GNU_SOURCE   -c -o dependency.o dependency.c -MMD -MP -MF .deps/dependency.Po
+In file included from ../../../src/include/nodes/execnodes.h:23:0,
+                 from ../../../src/include/bootstrap/bootstrap.h:17,
+                 from bootparse.y:27:
+../../../src/include/utils/cmsketch.h:11:21: error: expected ‘:’, ‘,’, ‘;’, ‘}’ or ‘__attribute__’ before ‘=’ token
+In file included from ../../../../src/include/nodes/execnodes.h:23:0,
+                 from ../../../../src/include/executor/execdesc.h:18,
+                 from ../../../../src/include/utils/portal.h:49,
+                 from ../../../../src/include/access/printtup.h:17,
+                 from printtup.c:18:
+../../../../src/include/utils/cmsketch.h:11:21: error: expected ‘:’, ‘,’, ‘;’, ‘}’ or ‘__attribute__’ before ‘=’ token
+In file included from ../../../src/include/nodes/execnodes.h:23:0,
+                 from ../../../src/include/catalog/index.h:17,
+                 from gram.y:54:
+../../../src/include/utils/cmsketch.h:11:21: error: expected ‘:’, ‘,’, ‘;’, ‘}’ or ‘__attribute__’ before ‘=’ token
+make[3]: *** [bootparse.o] Error 1
+make[3]: Leaving directory `/home/ubuntu/hw5/fa12/hw5/postgres-8.4.2/src/backend/bootstrap'
+make[2]: *** [bootstrap-recursive] Error 2
+make[2]: *** Waiting for unfinished jobs....
+make[4]: *** [printtup.o] Error 1
+make[4]: Leaving directory `/home/ubuntu/hw5/fa12/hw5/postgres-8.4.2/src/backend/access/common'
+make[3]: *** [common-recursive] Error 2
+make[3]: Leaving directory `/home/ubuntu/hw5/fa12/hw5/postgres-8.4.2/src/backend/access'
+make[2]: *** [access-recursive] Error 2
+gcc -O2 -Wall -Wmissing-prototypes -Wpointer-arith -Wdeclaration-after-statement -Wendif-labels -fno-strict-aliasing -fwrapv -g -I../../../src/include -D_GNU_SOURCE   -c -o heap.o heap.c -MMD -MP -MF .deps/heap.Po
+gcc -O2 -Wall -Wmissing-prototypes -Wpointer-arith -Wdeclaration-after-statement -Wendif-labels -fno-strict-aliasing -fwrapv -g -I../../../src/include -D_GNU_SOURCE   -c -o index.o index.c -MMD -MP -MF .deps/index.Po
+In file included from ../../../src/include/nodes/execnodes.h:23:0,
+                 from ../../../src/include/catalog/index.h:17,
+                 from dependency.c:23:
+../../../src/include/utils/cmsketch.h:11:21: error: expected ‘:’, ‘,’, ‘;’, ‘}’ or ‘__attribute__’ before ‘=’ token
+make[3]: *** [dependency.o] Error 1
+make[3]: *** Waiting for unfinished jobs....
+gcc -O2 -Wall -Wmissing-prototypes -Wpointer-arith -Wdeclaration-after-statement -Wendif-labels -fno-strict-aliasing -fwrapv -g -I. -I../../../src/include -D_GNU_SOURCE   -c -o parse_expr.o parse_expr.c -MMD -MP -MF .deps/parse_expr.Po
+In file included from ../../../src/include/nodes/execnodes.h:23:0,
+                 from ../../../src/include/catalog/index.h:17,
+                 from heap.c:40:
+../../../src/include/utils/cmsketch.h:11:21: error: expected ‘:’, ‘,’, ‘;’, ‘}’ or ‘__attribute__’ before ‘=’ token
+In file included from ../../../src/include/nodes/execnodes.h:23:0,
+                 from ../../../src/include/bootstrap/bootstrap.h:17,
+                 from index.c:32:
+../../../src/include/utils/cmsketch.h:11:21: error: expected ‘:’, ‘,’, ‘;’, ‘}’ or ‘__attribute__’ before ‘=’ token
+heap.c: In function ‘MergeWithExistingConstraint’:
+heap.c:2017:11: warning: the comparison will always evaluate as ‘true’ for the address of ‘isnull’ will never be NULL [-Waddress]
+heap.c:2017:11: warning: the comparison will always evaluate as ‘true’ for the address of ‘isnull’ will never be NULL [-Waddress]
+make[3]: *** [heap.o] Error 1
+gcc -O2 -Wall -Wmissing-prototypes -Wpointer-arith -Wdeclaration-after-statement -Wendif-labels -fno-strict-aliasing -fwrapv -g -I. -I../../../src/include -D_GNU_SOURCE   -c -o parse_func.o parse_func.c -MMD -MP -MF .deps/parse_func.Po
+make[3]: *** [index.o] Error 1
+make[3]: Leaving directory `/home/ubuntu/hw5/fa12/hw5/postgres-8.4.2/src/backend/catalog'
+make[2]: *** [catalog-recursive] Error 2
+gcc -O2 -Wall -Wmissing-prototypes -Wpointer-arith -Wdeclaration-after-statement -Wendif-labels -fno-strict-aliasing -fwrapv -g -I. -I../../../src/include -D_GNU_SOURCE   -c -o parse_relation.o parse_relation.c -MMD -MP -MF .deps/parse_relation.Po
+In file included from ../../../src/include/nodes/execnodes.h:23:0,
+                 from ../../../src/include/utils/xml.h:19,
+                 from parse_expr.c:34:
+../../../src/include/utils/cmsketch.h:11:21: error: expected ‘:’, ‘,’, ‘;’, ‘}’ or ‘__attribute__’ before ‘=’ token
+make[3]: *** [parse_expr.o] Error 1
+make[3]: *** Waiting for unfinished jobs....
+In file included from ../../../src/include/nodes/execnodes.h:23:0,
+                 from ../../../src/include/executor/execdesc.h:18,
+                 from ../../../src/include/executor/executor.h:17,
+                 from ../../../src/include/funcapi.h:21,
+                 from parse_relation.c:24:
+../../../src/include/utils/cmsketch.h:11:21: error: expected ‘:’, ‘,’, ‘;’, ‘}’ or ‘__attribute__’ before ‘=’ token
+In file included from ../../../src/include/nodes/execnodes.h:23:0,
+                 from ../../../src/include/executor/execdesc.h:18,
+                 from ../../../src/include/executor/executor.h:17,
+                 from ../../../src/include/funcapi.h:21,
+                 from parse_func.c:19:
+../../../src/include/utils/cmsketch.h:11:21: error: expected ‘:’, ‘,’, ‘;’, ‘}’ or ‘__attribute__’ before ‘=’ token
+make[3]: *** [parse_relation.o] Error 1
+make[3]: *** [parse_func.o] Error 1
+make[3]: *** [gram.o] Error 1
+make[3]: Leaving directory `/home/ubuntu/hw5/fa12/hw5/postgres-8.4.2/src/backend/parser'
+make[2]: *** [parser-recursive] Error 2
+make[2]: Leaving directory `/home/ubuntu/hw5/fa12/hw5/postgres-8.4.2/src/backend'
+make[1]: *** [all] Error 2
+make[1]: Leaving directory `/home/ubuntu/hw5/fa12/hw5/postgres-8.4.2/src'
+make: *** [all] Error 2
