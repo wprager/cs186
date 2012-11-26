@@ -8,7 +8,7 @@
 
 typedef struct cmsketch {
    /* CS186-TODO: add fields here as you need them */
-  uint32_t table[][];
+  uint32_t* table;
   uint32_t width;
   uint32_t depth;
 } cmsketch;

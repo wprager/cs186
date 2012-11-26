@@ -11,7 +11,7 @@
 /* initialize the count-min sketch for the specified width and depth */
 cmsketch* init_sketch(uint32 width, uint32 depth) {
   cmsketch* cmsPtr=(struct cmsketch *)palloc(sizeof(cmsketch));
-  uint32 emptytable[depth][width]={0};
+  uint32* emptytable = palloc0(width*depth*sizeof(uint32));
   cmsPtr->table=emptytable;
   cmsPtr->width=width;
   cmsPtr->depth=depth;
@@ -24,8 +24,10 @@ cmsketch* init_sketch(uint32 width, uint32 depth) {
  */
 void increment_bits(cmsketch* sketch, uint32 *bits) {
   int i;
-  for(i=0; i<sketch->depth; i++) {
-    sketch->table[i][bits[i]]++; //=sketch->table[i][bits[i]]+1;
+  uint32 width = sketch->width;
+  for(i=0; i < sketch->depth; i++) {
+    uint32 index = i*width + bits[i];
+    sketch->table[index]++;
   }
 }
 
@@ -35,9 +37,11 @@ void increment_bits(cmsketch* sketch, uint32 *bits) {
  */
 void decrement_bits(cmsketch* sketch, uint32 *bits) {
   int i;
-  for(i=0; i<sketch->depth; i++) {
-    if(sketch->table[i][bits[i]]>0) {
-      sketch->table[i][bits[i]]--;
+  uint32 width = sketch->width;
+  for(i=0; i < sketch->depth; i++) {
+    uint32 index = i*width + bits[i]; 
+    if(sketch->table[index] > 0) {
+      sketch->table[index]--;
     }
   }
 }
@@ -47,11 +51,13 @@ void decrement_bits(cmsketch* sketch, uint32 *bits) {
  *    Thus, each index is between 0 and 'width', and there are 'depth' of them.
  */
 uint32 estimate(cmsketch* sketch, uint32 *bits) {
-  uint32 minSoFar=0;
+  uint32 minSoFar = 0-1; //max uint32 value
   int i;
-  for(i=0; i<sketch->depth; i++) {
-    if(sketch->table[i][bits[i]]<minSoFar) {
-      minSoFar=sketch->table[i][bits[i]];
+  uint32 width = sketch->width;
+  for(i=0; i < sketch->depth; i++) {
+    uint32 index = i*width + bits[i];
+    if(sketch->table[index] < minSoFar) {
+      minSoFar = sketch->table[index];
     }
   }
   return minSoFar;
@@ -59,7 +65,8 @@ uint32 estimate(cmsketch* sketch, uint32 *bits) {
 
 /* set all values in the sketch to zero */
 void reset_sketch(cmsketch* sketch) {
-  uint32_t newtable[][]={0};
+  pfree(sketch->table);
+  uint32_t* newtable = palloc0(sketch->width*sketch->depth*sizeof(uint32));
   sketch->table=newtable;
 }
 
