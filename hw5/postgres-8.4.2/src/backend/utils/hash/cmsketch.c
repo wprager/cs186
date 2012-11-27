@@ -10,7 +10,7 @@
 
 /* initialize the count-min sketch for the specified width and depth */
 cmsketch* init_sketch(uint32 width, uint32 depth) {
-  cmsketch* cmsPtr=(struct cmsketch *)palloc(sizeof(cmsketch));
+  cmsketch* cmsPtr=(struct cmsketch *)palloc0(sizeof(cmsketch));
   uint32 emptytable[depth][width]={0};
   cmsPtr->table=emptytable;
   cmsPtr->width=width;
