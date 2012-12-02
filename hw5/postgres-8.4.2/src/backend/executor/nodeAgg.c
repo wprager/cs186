@@ -1395,13 +1395,15 @@ approx_agg_init(AggState *aggstate)
 	for (i = 0; i < agg->cm_depth; ++i)
 	{
 		aggstate->a[i] = lrand48();
-        aggstate->b[i] = lrand48();
+		aggstate->b[i] = lrand48();
 	}
 
 	/*
 	 * CS186-TODO: allocate any structures inside of aggstate that you will need.
 	 */
-	
+	// make TopKQueue. It will be stored in aggstate
+	makeTopKQueue(aggstate);
+
 	approx_agg_reset_iter(aggstate);
 
 	MemoryContextSwitchTo(old_cxt);
