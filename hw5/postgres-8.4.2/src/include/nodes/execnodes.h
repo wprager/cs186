@@ -1505,6 +1505,20 @@ typedef struct ApproxTopEntry
 
 } ApproxTopEntry;
 
+/* ----------------
+ * TopKQueue
+ *    a priotity queue for the top k approx entries
+ *    initilization requires memory context
+ */
+typedef struct TopKQueue
+{
+  int k;
+  ApproxTopEntry **entries; // array of AppoxTopEntry pointers
+  int lowest_count;
+  int size;
+}TopKQueue;
+
+
 typedef struct AggState
 {
 	ScanState	ss;				/* its first field is NodeTag */
@@ -1533,6 +1547,7 @@ typedef struct AggState
 	/* CS186-TODO: Add any extra fields you need in AggState here */
         cmsketch *cms;
         TopKQueue *topkqueue;
+        int nextIteratorIndex;
 } AggState;
 
 /* ----------------
@@ -1680,40 +1695,5 @@ typedef struct LimitState
 	int64		position;		/* 1-based index of last tuple returned */
 	TupleTableSlot *subSlot;	/* tuple last obtained from subplan */
 } LimitState;
-
-/* ----------------
- * TopKQueue
- *    a priotity queue for the top k approx entries
- *    initilization requires memory context
- */
-typedef struct TopKQueue
-{
-  int k;
-  ApproxTopEntry **entries; // array of AppoxTopEntry pointers
-  int lowest_count;
-  int size;
-}TopKQueue;
-
-// TopKQueue initilization
-TopKQueue* makeTopKQueue(Aggstate *aggstate)
-{
-  // get the value of k from Aggstate
-  Agg	*agg = (Agg *) aggstate->ss.ps.plan;
-  int k  = agg->aprox_nkeep;
-
-  // switch context just in case
-  MemoryContext old_cxt;
-  old_cxt = MemoryContextSwitchTo(aggstate->aggcontext);
-
-  // allocate memory for new TopKQueue
-  TopKQueue* tkq = palloc(sizeof(TopKQueue));
-  tkq->k = k;
-  tkq->entries = palloc(sizeof(ApproxTopEntry*)*k);
-  aggstate->topkqueue = tkq;
-
-  // switch context back and return
-  old_cxt = MemoryContextSwitchTo(old_cxt);
-  return tkq;
-}
 			   
 #endif   /* EXECNODES_H */

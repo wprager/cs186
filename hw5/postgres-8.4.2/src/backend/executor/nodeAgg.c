@@ -1370,6 +1370,28 @@ set_approx_top_entry_from_slot(TupleTableSlot* slot, ApproxTopEntry* approx_entr
 /** ====================== STUFF YOU NEED TO CHANGE ===================== **/
 
 // added helper functions
+// TopKQueue initilization
+TopKQueue* makeTopKQueue(AggState *aggstate)
+{
+  // get the value of k from Aggstate
+  Agg	*agg = (Agg *) aggstate->ss.ps.plan;
+  int k  = agg->approx_nkeep;
+
+  // switch context just in case
+  MemoryContext old_cxt;
+  old_cxt = MemoryContextSwitchTo(aggstate->aggcontext);
+
+  // allocate memory for new TopKQueue
+  TopKQueue* tkq = (TopKQueue *) palloc(sizeof(TopKQueue));
+  tkq->k = k;
+  tkq->entries = (ApproxTopEntry **)palloc0(sizeof(ApproxTopEntry*)*k);
+  aggstate->topkqueue = tkq;
+
+  // switch context back and return
+  old_cxt = MemoryContextSwitchTo(old_cxt);
+  return tkq;
+}
+
 // Find index of tuple in TopKQueue.  return -1 if not found 
 static int
 topKQueue_index_of(TopKQueue *tkq, TupleTableSlot* slot,
@@ -1409,11 +1431,12 @@ topKQueue_insert_entry(TopKQueue *tkq, TupleTableSlot *slot, int new_count)
 
   // free the last entry
   pfree(tkq->entries[k-1]);
+  tkq->entries[k-1] = 0;
 
   // find spot to insert, account for null pointers to fill empty spots 
   int new_index = k-1;
   while (new_index != 0 && 
-	 ((new_count > tkq->entries[new_index-1]->approx_count)||(tkq->entries[new_index-1] == 0)){
+	 ((new_count > tkq->entries[new_index-1]->approx_count)||(tkq->entries[new_index-1] == 0))){
     new_index = new_index - 1;
   }
 
@@ -1486,6 +1509,8 @@ approx_agg_init(AggState *aggstate)
 	aggstate->cms = init_sketch(agg->cm_width, agg->cm_depth);
 	// make TopKQueue. It will be stored in aggstate
 	makeTopKQueue(aggstate);
+	// initialize iter
+	aggstate->nextIteratorIndex = 0;
 
 	approx_agg_reset_iter(aggstate);
 
@@ -1547,7 +1572,25 @@ approx_agg_per_input(AggState *aggstate, TupleTableSlot* outerSlot, Agg* agg)
 	/*
 	 * CS186-TODO: Implement your function to process each input tuple.
 	 */
+  int width = agg->cm_width;
+  int depth = agg->cm_depth;
+  cmsketch* cms = aggstate->cms;
+  TopKQueue* tkq = aggstate->topkqueue;
   
+  // update cmsketch
+  uint32 *hashvals = (uint32 *) palloc0(sizeof(uint32)*depth);
+  getTupleHashBits(aggstate, outerSlot, hashvals, width, depth);
+  increment_bits(cms, hashvals);
+
+  // get count, update TopKQueue
+  uint32 approx_count = estimate(cms, hashvals);
+  if (approx_count > tkq->lowest_count){
+    topKQueue_put(tkq, outerSlot, approx_count, aggstate, agg);
+  }
+
+  // free hashvals
+  pfree(hashvals);
+  hashvals = 0;
 }
 
 
@@ -1561,6 +1604,7 @@ approx_agg_reset_iter(AggState *aggstate)
 	/*
 	 * CS186-TODO: Any code to reset the aggstate for your approx function should go here.
 	 */
+  	aggstate->nextIteratorIndex = 0;
  	
 }
 
@@ -1626,7 +1670,7 @@ agg_retrieve_cmsketch(AggState *aggstate)
 		ExecStoreMinimalTuple(tuple->tuple, firstSlot, false);
 
 		old_cxt = MemoryContextSwitchTo(tmp_cxt);
-		aggvalues[0] = Int64GetDatum(0 /* CS186-TODO: Set the count for this group here */);
+		aggvalues[0] = Int64GetDatum(tuple->approx_count /* Set the count for this group here */);
 
 		/* Our agg values are never null */
 		aggnulls[0] = false;
@@ -1666,7 +1710,13 @@ approx_agg_advance_iter(AggState *aggstate, Agg* agg)
 	 * CS186-TODO: You will need to implement this function to walk over
 	 * the data structure you have written to keep track of frequencies.
 	 */
-    return NULL;
+  int k = aggstate->topkqueue->k;
+  if (aggstate->nextIteratorIndex != k){
+    int curr_index = aggstate->nextIteratorIndex;
+    aggstate->nextIteratorIndex++;
+    return aggstate->topkqueue->entries[curr_index];
+  }
+  return NULL;
 }
 
 
