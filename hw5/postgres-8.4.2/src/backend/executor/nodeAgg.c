@@ -1386,6 +1386,8 @@ TopKQueue* makeTopKQueue(AggState *aggstate)
   tkq->k = k;
   tkq->entries = (ApproxTopEntry **)palloc0(sizeof(ApproxTopEntry*)*k);
   aggstate->topkqueue = tkq;
+  tkq->lowest_count = 0;
+  tkq->size = 0;
 
   // switch context back and return
   old_cxt = MemoryContextSwitchTo(old_cxt);
@@ -1402,7 +1404,7 @@ topKQueue_index_of(TopKQueue *tkq, TupleTableSlot* slot,
   
   for (i = 0; i < k; i++){
     // compare at all indeces
-    if (compare_tuple_with_approx_top_tuple(slot, tkq->entries[i], aggstate, agg)){
+    if (tkq->entries[i] != 0 && compare_tuple_with_approx_top_tuple(slot, tkq->entries[i], aggstate, agg)){
       return i;
     }
   }
@@ -1425,32 +1427,41 @@ topKQueue_insert_entry(TopKQueue *tkq, TupleTableSlot *slot, int new_count)
   int k = tkq->k;
   
   // create and fill new entry to be inserted
-  ApproxTopEntry *new_entry = palloc(sizeof(ApproxTopEntry));
+  ApproxTopEntry *new_entry = (ApproxTopEntry *)palloc(sizeof(ApproxTopEntry));
   set_approx_top_entry_from_slot(slot, new_entry);
   new_entry->approx_count = new_count;
 
   // free the last entry
-  pfree(tkq->entries[k-1]);
-  tkq->entries[k-1] = 0;
+  if (tkq->entries[k-1] != 0){
+    pfree(tkq->entries[k-1]);
+    tkq->entries[k-1] = 0;
+  }
+  elog(LOG, "freed last entry ---"); // debug
 
   // find spot to insert, account for null pointers to fill empty spots 
   int new_index = k-1;
   while (new_index != 0 && 
-	 ((new_count > tkq->entries[new_index-1]->approx_count)||(tkq->entries[new_index-1] == 0))){
+	 ((tkq->entries[new_index-1] == 0)||(new_count > tkq->entries[new_index-1]->approx_count))){
     new_index = new_index - 1;
+    elog(LOG, "new_index progress: %d", new_index); //debug
   }
+
+  elog(LOG, "found new index: %d ---", new_index); //debug
 
   // scoot everything down, starting from the back
   int i;
   for(i = k-1; i > new_index; i--){
     tkq->entries[i] = tkq->entries[i-1];
   }
+  
+  elog(LOG, "scooted down ---"); // debug
 
   // insert new_entry
   tkq->entries[new_index] = new_entry;
 
   // set new lowest_count for tkq
-  tkq->lowest_count = tkq->entries[k-1]->approx_count;
+  if (tkq->entries[k-1] != 0)
+    tkq->lowest_count = tkq->entries[k-1]->approx_count;
 }
 
 // either updates existing or inserts new element to tkq
@@ -1458,19 +1469,20 @@ static void
   topKQueue_put(TopKQueue *tkq, TupleTableSlot *slot, int new_count,
 	      AggState * aggstate, Agg *agg)
 {
-  if (tkq->size < tkq->k){
+  elog(LOG, "put ---");
+  
+  int tkq_index = topKQueue_index_of(tkq, slot, aggstate, agg);
+  if (tkq_index == -1){
+    elog(LOG, "Insert new.  new_count: %d", new_count); //debug
     topKQueue_insert_entry(tkq, slot, new_count);
-    tkq->size++;
+    if(tkq->size < tkq->k)
+      tkq->size++;
   }
   else{
-    int tkq_index = topKQueue_index_of(tkq, slot, aggstate, agg);
-    if (tkq_index == -1){
-      topKQueue_insert_entry(tkq, slot, new_count);
-    }
-    else{
-      topKQueue_update_entry(tkq, tkq_index, new_count);
-    }
+    elog(LOG, "Update current. new_count: %d", new_count);//debug
+    topKQueue_update_entry(tkq, tkq_index, new_count); 
   }
+  
 }
 
 /*
@@ -1513,6 +1525,8 @@ approx_agg_init(AggState *aggstate)
 	aggstate->nextIteratorIndex = 0;
 
 	approx_agg_reset_iter(aggstate);
+
+	elog(LOG, "initialized"); //debug
 
 	MemoryContextSwitchTo(old_cxt);
 }
@@ -1584,6 +1598,7 @@ approx_agg_per_input(AggState *aggstate, TupleTableSlot* outerSlot, Agg* agg)
 
   // get count, update TopKQueue
   uint32 approx_count = estimate(cms, hashvals);
+  elog(LOG, "approx_count: %d, lowest_count: %d", approx_count, tkq->lowest_count); // debug
   if (approx_count > tkq->lowest_count){
     topKQueue_put(tkq, outerSlot, approx_count, aggstate, agg);
   }
@@ -1714,6 +1729,7 @@ approx_agg_advance_iter(AggState *aggstate, Agg* agg)
   if (aggstate->nextIteratorIndex != k){
     int curr_index = aggstate->nextIteratorIndex;
     aggstate->nextIteratorIndex++;
+    elog(LOG, "nextIteratorIndex: %d", aggstate->nextIteratorIndex);
     return aggstate->topkqueue->entries[curr_index];
   }
   return NULL;
