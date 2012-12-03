@@ -1418,6 +1418,23 @@ static void
 topKQueue_update_entry(TopKQueue *tkq, int index, int new_count)
 {
   tkq->entries[index]->approx_count = new_count;
+  while(index != 0){
+    if(tkq->entries[index]->approx_count > tkq->entries[index-1]->approx_count){
+      ApproxTopEntry *tmp = tkq->entries[index-1];
+      tkq->entries[index-1] = tkq->entries[index];
+      tkq->entries[index] = tmp;
+      index = index-1;
+    }
+    else{
+      break;
+    }
+  }
+
+  // set new lowest_count for tkq
+  if (tkq->entries[tkq->k-1] != 0)
+    tkq->lowest_count = tkq->entries[tkq->k-1]->approx_count;
+  else
+    tkq->lowest_count = 0;
 }
 
 // inserts new entry to tkq and frees the lowest count entry
@@ -1436,25 +1453,19 @@ topKQueue_insert_entry(TopKQueue *tkq, TupleTableSlot *slot, int new_count)
     pfree(tkq->entries[k-1]);
     tkq->entries[k-1] = 0;
   }
-  elog(LOG, "freed last entry ---"); // debug
 
   // find spot to insert, account for null pointers to fill empty spots 
   int new_index = k-1;
   while (new_index != 0 && 
 	 ((tkq->entries[new_index-1] == 0)||(new_count > tkq->entries[new_index-1]->approx_count))){
     new_index = new_index - 1;
-    elog(LOG, "new_index progress: %d", new_index); //debug
   }
-
-  elog(LOG, "found new index: %d ---", new_index); //debug
 
   // scoot everything down, starting from the back
   int i;
   for(i = k-1; i > new_index; i--){
     tkq->entries[i] = tkq->entries[i-1];
   }
-  
-  elog(LOG, "scooted down ---"); // debug
 
   // insert new_entry
   tkq->entries[new_index] = new_entry;
@@ -1462,24 +1473,24 @@ topKQueue_insert_entry(TopKQueue *tkq, TupleTableSlot *slot, int new_count)
   // set new lowest_count for tkq
   if (tkq->entries[k-1] != 0)
     tkq->lowest_count = tkq->entries[k-1]->approx_count;
+  else
+    tkq->lowest_count = 0;
 }
 
 // either updates existing or inserts new element to tkq
 static void
   topKQueue_put(TopKQueue *tkq, TupleTableSlot *slot, int new_count,
 	      AggState * aggstate, Agg *agg)
-{
-  elog(LOG, "put ---");
-  
+{ 
   int tkq_index = topKQueue_index_of(tkq, slot, aggstate, agg);
   if (tkq_index == -1){
-    elog(LOG, "Insert new.  new_count: %d", new_count); //debug
+    //elog(LOG, "Insert new.  new_count: %d", new_count); //debug
     topKQueue_insert_entry(tkq, slot, new_count);
     if(tkq->size < tkq->k)
       tkq->size++;
   }
   else{
-    elog(LOG, "Update current. new_count: %d", new_count);//debug
+    //elog(LOG, "Update current. new_count: %d", new_count);//debug
     topKQueue_update_entry(tkq, tkq_index, new_count); 
   }
   
@@ -1525,8 +1536,6 @@ approx_agg_init(AggState *aggstate)
 	aggstate->nextIteratorIndex = 0;
 
 	approx_agg_reset_iter(aggstate);
-
-	elog(LOG, "initialized"); //debug
 
 	MemoryContextSwitchTo(old_cxt);
 }
@@ -1598,7 +1607,7 @@ approx_agg_per_input(AggState *aggstate, TupleTableSlot* outerSlot, Agg* agg)
 
   // get count, update TopKQueue
   uint32 approx_count = estimate(cms, hashvals);
-  elog(LOG, "approx_count: %d, lowest_count: %d", approx_count, tkq->lowest_count); // debug
+  //elog(LOG, "approx_count: %d, lowest_count: %d", approx_count, tkq->lowest_count); // debug
   if (approx_count > tkq->lowest_count){
     topKQueue_put(tkq, outerSlot, approx_count, aggstate, agg);
   }
@@ -1729,7 +1738,6 @@ approx_agg_advance_iter(AggState *aggstate, Agg* agg)
   if (aggstate->nextIteratorIndex != k){
     int curr_index = aggstate->nextIteratorIndex;
     aggstate->nextIteratorIndex++;
-    elog(LOG, "nextIteratorIndex: %d", aggstate->nextIteratorIndex);
     return aggstate->topkqueue->entries[curr_index];
   }
   return NULL;
