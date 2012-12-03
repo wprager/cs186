@@ -1501,6 +1501,7 @@ typedef struct ApproxTopEntry
 {
 	MinimalTuple tuple;  /* The Tuple */
 	/* CS186-TODO: Add any other fields you want here */
+        int approx_count;
 
 } ApproxTopEntry;
 
@@ -1530,6 +1531,7 @@ typedef struct AggState
 	TupleTableSlot *tempslot;  /* slot used for transferring temp data */
 
 	/* CS186-TODO: Add any extra fields you need in AggState here */
+        cmsketch *cms;
         TopKQueue *topkqueue;
 } AggState;
 
@@ -1687,7 +1689,9 @@ typedef struct LimitState
 typedef struct TopKQueue
 {
   int k;
-  ApproxTopEntry *entries;
+  ApproxTopEntry **entries; // array of AppoxTopEntry pointers
+  int lowest_count;
+  int size;
 }TopKQueue;
 
 // TopKQueue initilization
@@ -1704,7 +1708,7 @@ TopKQueue* makeTopKQueue(Aggstate *aggstate)
   // allocate memory for new TopKQueue
   TopKQueue* tkq = palloc(sizeof(TopKQueue));
   tkq->k = k;
-  tkq->entries = palloc(sizeof(ApproxTopEntry)*k);
+  tkq->entries = palloc(sizeof(ApproxTopEntry*)*k);
   aggstate->topkqueue = tkq;
 
   // switch context back and return

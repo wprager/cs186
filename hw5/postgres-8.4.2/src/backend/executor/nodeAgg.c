@@ -1369,6 +1369,74 @@ set_approx_top_entry_from_slot(TupleTableSlot* slot, ApproxTopEntry* approx_entr
 
 /** ====================== STUFF YOU NEED TO CHANGE ===================== **/
 
+// added helper functions
+// Find index of tuple in TopKQueue.  return -1 if not found 
+static int
+topKQueue_index_of(TopKQueue *tkq, TupleTableSlot* slot,
+		AggState* aggstate, Agg* agg)
+{
+  int k = tkq->k;
+  int i;
+  
+  for (i = 0; i < k; i++){
+    // compare at all indeces
+    if (compare_tuple_with_approx_top_tuple(slot, tkq->entries[i], aggstate, agg)){
+      return i;
+    }
+  }
+
+  // not found, return -1
+  return -1;
+}
+
+// updates the count of an entry
+static void
+topKQueue_update_entry(TopKQueue *tkq, int index, int new_count)
+{
+  tkq->entries[index]->approx_count = new_count;
+}
+
+// inserts new entry to tkq and frees the lowest count entry
+static void
+topKQueue_insert_entry(TopKQueue *tkq, TupleTableSlot *slot, int new_count)
+{
+  int k = tkq->k;
+  
+  // create and fill new entry to be inserted
+  ApproxTopEntry *new_entry = palloc(sizeof(ApproxTopEntry));
+  set_approx_top_entry_from_slot(slot, new_entry);
+  new_entry->approx_count = new_count;
+
+  // free the last entry
+  pfree(tkq->entries[k-1]);
+
+  // find spot to insert 
+  int new_index = k-1;
+  while (new_index != 0 && new_count > tkq->entries[new_index-1]->approx_count){
+    new_index = new_index - 1;
+  }
+
+  // scoot everything down, starting from the back
+  int i;
+  for(i = k-1; i > new_index; i--){
+    tkq->entries[i] = tkq->entries[i-1];
+  }
+
+  // insert new_entry
+  tkq->entries[new_index] = new_entry;
+
+  // set new lowest_count for tkq
+  tkq->lowest_count = tkq->entries[k-1]->approx_count;
+}
+
+// either updates existing or inserts new element to tkq
+static void
+topKQueue_put(TopKQueue *tkq, TupleTableSlot *slot,
+	      AggState * aggstate, Agg *agg)
+{
+  
+}
+
 /*
  * Initialize the data structures we need to implement approximate
  * counting. Note that all approximation-related data is allocated in the
@@ -1401,6 +1469,8 @@ approx_agg_init(AggState *aggstate)
 	/*
 	 * CS186-TODO: allocate any structures inside of aggstate that you will need.
 	 */
+	// make cmsketch.
+	aggstate->cms = init_sketch(agg->cm_width, agg->cm_depth);
 	// make TopKQueue. It will be stored in aggstate
 	makeTopKQueue(aggstate);
 
