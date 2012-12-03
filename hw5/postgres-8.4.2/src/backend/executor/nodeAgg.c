@@ -1410,9 +1410,10 @@ topKQueue_insert_entry(TopKQueue *tkq, TupleTableSlot *slot, int new_count)
   // free the last entry
   pfree(tkq->entries[k-1]);
 
-  // find spot to insert 
+  // find spot to insert, account for null pointers to fill empty spots 
   int new_index = k-1;
-  while (new_index != 0 && new_count > tkq->entries[new_index-1]->approx_count){
+  while (new_index != 0 && 
+	 ((new_count > tkq->entries[new_index-1]->approx_count)||(tkq->entries[new_index-1] == 0)){
     new_index = new_index - 1;
   }
 
@@ -1431,10 +1432,22 @@ topKQueue_insert_entry(TopKQueue *tkq, TupleTableSlot *slot, int new_count)
 
 // either updates existing or inserts new element to tkq
 static void
-topKQueue_put(TopKQueue *tkq, TupleTableSlot *slot,
+  topKQueue_put(TopKQueue *tkq, TupleTableSlot *slot, int new_count,
 	      AggState * aggstate, Agg *agg)
 {
-  
+  if (tkq->size < tkq->k){
+    topKQueue_insert_entry(tkq, slot, new_count);
+    tkq->size++;
+  }
+  else{
+    int tkq_index = topKQueue_index_of(tkq, slot, aggstate, agg);
+    if (tkq_index == -1){
+      topKQueue_insert_entry(tkq, slot, new_count);
+    }
+    else{
+      topKQueue_update_entry(tkq, tkq_index, new_count);
+    }
+  }
 }
 
 /*
@@ -1481,7 +1494,7 @@ approx_agg_init(AggState *aggstate)
 
 /*
  * PHASE 1.
- * Fill the cmsketch for this aggreagation. This function walks over all the
+ * Fill the cmsketch for this aggregation. This function walks over all the
  * tuples of data and invokes approx_agg_per_input with each tuple. 
  */
 static void
@@ -1534,7 +1547,7 @@ approx_agg_per_input(AggState *aggstate, TupleTableSlot* outerSlot, Agg* agg)
 	/*
 	 * CS186-TODO: Implement your function to process each input tuple.
 	 */
-
+  
 }
 
 
